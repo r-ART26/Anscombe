@@ -31,7 +31,7 @@ Basándose únicamente en estos números, uno podría concluir erróneamente que
 Sin embargo, la realidad es drásticamente diferente. Cuando estos cuatro conjuntos se grafican en un diagrama de dispersión, revelan naturalezas completamente distintas:
 
 <p align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Anscombes_quartet_3.svg/800px-Anscombes_quartet_3.svg.png" alt="Gráficos del Cuarteto de Anscombe" width="700">
+  <img width="1200" height="800" alt="image" src="https://github.com/user-attachments/assets/296f1e8c-f415-4ad6-b8a0-ac41cef26e17" />
 </p>
 
 1.  **Conjunto I (Arriba Izquierda):** Muestra una relación lineal clara y simple, con una dispersión de puntos normal. Es el único conjunto que se ajusta bien al modelo de regresión lineal.
