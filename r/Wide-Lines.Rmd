@@ -1,0 +1,139 @@
+---
+title: "Wide-Lines"
+author: "Roberto Romero"
+date: "2025-10-28"
+output: html_document
+---
+
+## Libraries
+
+```{r}
+library(datasauRus)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gt)
+
+# Ver los nombres de los conjuntos
+unique(datasaurus_dozen$dataset)
+```
+
+## Wide-Lines Dataset
+
+```{r}
+# Filter only wide-lines
+wide_lines <- subset(datasaurus_dozen, dataset == "wide_lines")
+
+ggplot(wide_lines, aes(x = x, y = y)) +
+  geom_point(color = "steelblue", size = 2) +
+  theme_minimal() +
+  labs(
+    title = "Datasaurus - Wide Lines",
+    x = "Eje X",
+    y = "Eje Y"
+  )
+```
+# Analysis of the dataset
+
+```{r}
+calc_stats <- function(v) {
+  n <- length(v); m <- mean(v); s <- sd(v)
+  # Sesgo y curtosis (definición poblacional, curtosis en "exceso")
+  skew <- if (s > 0) sum((v - m)^3 / n) / s^3 else NA_real_
+  kurt <- if (s > 0) sum((v - m)^4 / n) / s^4 - 3 else NA_real_
+  # Shapiro-Wilk (válido para 3 <= n <= 5000)
+  shap_p <- tryCatch(shapiro.test(v)$p.value, error = function(e) NA_real_)
+
+  tibble(
+    `Estadístico` = c(
+      "n","Media","Mediana","Media recortada (10%)",
+      "Desv. estándar","Varianza","IQR","MAD (robusta)",
+      "Mínimo","Q1","Q3","Máximo","Rango",
+      "Coef. de variación","Sesgo (skewness)","Curtosis (exceso)",
+      "Shapiro-Wilk p"
+    ),
+    Valor = c(
+      n, m, median(v), mean(v, trim = 0.10),
+      s, var(v), IQR(v), mad(v, constant = 1.4826),
+      min(v), unname(quantile(v, 0.25)), unname(quantile(v, 0.75)), max(v),
+      diff(range(v)), ifelse(m != 0, s/m, NA_real_), skew, kurt, shap_p
+    )
+  )
+}
+
+#### 4) Calcular X e Y y combinar (con fallback si no hay tidyr) ----
+stats_x <- calc_stats(wide_lines$x) |> dplyr::mutate(Variable = "X")
+stats_y <- calc_stats(wide_lines$y) |> dplyr::mutate(Variable = "Y")
+
+if ("package:tidyr" %in% search() && "pivot_wider" %in% ls("package:tidyr")) {
+  stats_tbl <- dplyr::bind_rows(stats_x, stats_y) |>
+    tidyr::pivot_wider(names_from = Variable, values_from = Valor)
+} else {
+  # Fallback base R (sin tidyr)
+  stats_tbl <- merge(as.data.frame(stats_x), as.data.frame(stats_y),
+                     by = "Estadístico", all = TRUE, suffixes = c(".X",".Y"))
+  names(stats_tbl) <- c("Estadístico","X","Y")
+}
+
+# Agregar correlación al final
+corr_xy <- cor(wide_lines$x, wide_lines$y)
+stats_tbl <- dplyr::bind_rows(
+  stats_tbl,
+  tibble(Estadístico = "Correlación (X,Y)", X = corr_xy, Y = corr_xy)
+)
+
+#### 5) Mostrar tabla vertical (prioridad: gt → kable → print) ----
+if ("package:gt" %in% search()) {
+  stats_tbl |>
+    gt::gt() |>
+    gt::fmt_number(columns = c(X, Y), decimals = 3) |>
+    gt::cols_label(Estadístico = "Estadístico", X = "X", Y = "Y") |>
+    gt::tab_header(
+      title = gt::md("**Datasaurus — 'wide_lines'**"),
+      subtitle = "Estadísticos de tendencia, dispersión y forma"
+    ) |>
+    gt::opt_row_striping() |>           # ← versión compatible
+    gt::tab_options(table.width = gt::pct(60))
+} else if ("package:knitr" %in% search()) {
+  knitr::kable(stats_tbl, digits = 3,
+               caption = "Tabla. Estadísticos descriptivos — 'wide_lines'",
+               align = "c")
+} else {
+  print(round(stats_tbl, 3))
+}
+
+```
+
+
+## Regression Line
+
+```{r}
+# Modelo lineal para la anotación
+modelo <- lm(y ~ x, data = wide_lines)
+b0 <- coef(modelo)[1]; b1 <- coef(modelo)[2]
+r2 <- summary(modelo)$r.squared
+
+ggplot(wide_lines, aes(x = x, y = y)) +
+  geom_point(alpha = 0.75, size = 2.5) +
+  geom_smooth(method = "lm", se = TRUE, size = 1) +
+  annotate(
+    "label",
+    x = quantile(wide_lines$x, 0.05),
+    y = quantile(wide_lines$y, 0.95),
+    hjust = 0, vjust = 1,
+    label = sprintf("y = %.3f + %.3f·x\nR² = %.3f", b0, b1, r2)
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Datasaurus - Wide Lines",
+    subtitle = "Puntos con línea de regresión (IC 95%)",
+    x = "X", y = "Y",
+    caption = "Nota: pese a estadísticas similares entre subconjuntos, las formas difieren."
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5, colour = "gray30")
+  )
+```
+
+
