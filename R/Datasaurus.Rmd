@@ -1,0 +1,49 @@
+---
+title: "Visualización del Datasaurus Dozen"
+author: "Roberto Romero"
+date: "2025-10-30"
+output: html_document
+---
+```{r}
+library(ggplot2)
+library(datasauRus)
+```
+
+```{r}
+# Crear el gráfico
+ggplot(datasaurus_dozen, aes(x = x, y = y)) +
+  
+  # 1. Añadir los puntos
+  # Usamos 'color = dataset' para dar un color único a cada gráfico
+  # 'show.legend = FALSE' porque los títulos de las facetas ya nos dan la info
+  geom_point(aes(color = dataset), alpha = 0.7, size = 2, show.legend = FALSE) +
+  
+  # 2. Añadir la línea de regresión lineal (idéntica para todos)
+  # 'se = FALSE' oculta el intervalo de confianza para un look más limpio
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed", size = 0.8) +
+  
+  # 3. La función clave: crear un sub-gráfico para cada 'dataset'
+  # 'ncol = 4' organiza la cuadrícula en 4 columnas
+  facet_wrap(~ dataset, ncol = 4) +
+  
+  # 4. Estética y Títulos
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "El 'Datasaurus Dozen'",
+    subtitle = "Demostración de que estadísticas idénticas ocultan patrones visuales únicos",
+    x = "Eje X",
+    y = "Eje Y",
+    caption = "Fuente: Paquete 'datasauRus' en R"
+  ) +
+  
+  # 5. Limpieza visual
+  theme(
+    # Ocultar los números de los ejes (opcional, pero limpia la vista)
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    
+    # Poner en negrita los títulos de cada faceta
+    strip.text = element_text(face = "bold", size = 10)
+  )
+```
+
